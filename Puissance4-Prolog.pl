@@ -106,14 +106,71 @@ changePlayer('o','x').
 %ia(_,_,_,_,2):- 
 %
 %%Soucis stop juste quand winner alros qu'on veut faire toutes les sommes
-ia(Board, IndexCol, IndexRow,Player,_,_):-isMoveValid(IndexCol,IndexRow,Board), copy_term(Board, NewBoardIA),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,Player), winner(NewBoardTest,Player),!.
+
+%Victoire immédiate
+%ia(Board, IndexCol, IndexRow,'x',_,_):-isMoveValid(IndexCol,IndexRow,Board), copy_term(Board, NewBoardIA),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,Player), winner(NewBoardTest,Player),!.
 
 %ia victoire de l'adversaire immédiate :
-ia(Board, IndexCol, IndexRow,Player,NextPlayer,_):-isMoveValid(IndexCol,IndexRow,Board),copy_term(Board, NewBoardIA), changePlayer(Player,NextPlayer),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,NextPlayer),winner(NewBoardTest,NextPlayer),!.
+%ia(Board, IndexCol, IndexRow,'x',NextPlayer,_):-isMoveValid(IndexCol,IndexRow,Board),copy_term(Board, NewBoardIA), changePlayer(Player,NextPlayer),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,NextPlayer),winner(NewBoardTest,NextPlayer),!.
 
-%Il faut check si colonne vide au dessus de Index et Elem en dessous d'Index
-%%IA random sa mère
-ia(Board, IndexCol, IndexRow,_,_,_):-repeat, IndexCol is random(7), IndexRow is random(6), isMoveValid(IndexCol,IndexRow,Board),!.
+%IA Heuristique
+ia(Board, IndexCol, IndexRow,'o',_,1, Score):-isMoveValid(IndexCol,IndexRow,Board),
+    														copy_term(Board, NewBoardIA),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,'o'),
+    														heuristic(NewBoardTest, 'o', OtherScore),
+															Score is -OtherScore.
+ia(Board, IndexCol, IndexRow,'o',_,_):-repeat, IndexCol is random(7), IndexRow is random(6), isMoveValid(IndexCol,IndexRow,Board),!.
+
+ia(Board, IndexCol, IndexRow,'x',_,0):-	
+%    														scoreMax(-1000),
+    
+ %   														repeat,
+  %  															isMoveValid(IndexColCurrent,IndexRowCurrent,Board), 
+   % 															copy_term(Board, NewBoardIA),
+    %															playMove(NewBoardIA,IndexColCurrent, IndexRowCurrent,NewBoardTest,'x'),
+    %															changePlayer('x', NextPlayer),
+   	%															ia(NewBoardTest, _, _,NextPlayer,'x',1,Score),
+    %															Score > scoreMax,
+    %															scoreMax(Score),
+    %															IndexCol = IndexColCurrent,
+     %         												IndexRow = IndexRowCurrent.
+              											
+    
+	bestMove(Board,IndexCol,IndexRow,_,-1000,[]).
+              												
+getRandomValidMove(Board, IndexCol, IndexRow) :- repeat, IndexCol is random(7), IndexRow is random(6), isMoveValid(IndexCol,IndexRow,Board),!.
+
+
+%Best Move
+bestMove(Board, BestCol, BestRow, NewScoreMax, OldScoreMax, CoupsEffectues) :-
+  getRandomValidMove(Board, Col, Row),
+  not(member(Col, CoupsEffectues)),
+
+    append(CoupsEffectues, [Col], NewCoupsEffectues),
+
+  bestMove(Board, BestCol, BestRow, InterScoreMax, OldScoreMax, NewCoupsEffectues),
+
+  copy_term(Board, NewBoard),
+  playMove(NewBoard, Col, Row, NewBoardAfterMove, 'x'),
+  %changePlayer('x', NextPlayer),
+  heuristic(NewBoardAfterMove, 'x', Score),
+
+  NewScoreMax is max(Score, InterScoreMax),
+  Score > InterScoreMax,
+  BestCol = Col,
+  BestRow = Row.
+
+bestMove(_, _, _, NewScoreMax, _, _) :-
+  NewScoreMax = (-1000).
+
+
+
+%Niv intermédiaire
+%ia(Board, IndexCol, IndexRow,'x',NextPlayer,Profondeur,Score):-isMoveValid(IndexCol,IndexRow,Board),NewProfondeur is Profondeur+1, 
+ %   														copy_term(Board, NewBoardIA),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,Player),
+  %  														ia(NewBoardTest, IndexCol, IndexRow,Player,NextPlayer,NewProfondeur,Score).
+    
+
+%%IA random
                                    
 
 isElemVar(Col,Row,Board):-elemBoard(Col, Row, Board, Elem),var(Elem).
@@ -126,28 +183,19 @@ isMoveValid(Col,Row,Board):-isElemVar(Col,Row,Board),isGroundCol(Col,Row,Board).
 %rowInColValidMove([],0,Board).
 %rowInColValidMove([HCol|T],R,Board):-nonvar(HCol),rowInColValidMove(T,A,Board,Res), R is A+1.
 
-printVal(N) :- board(B), nth0(N,B,Val), var(Val), write(' |'), !.
-printVal(N) :- board(B), nth0(N,B,Val), write(Val), write('|').
-
-interSpace.
+printVal(N) :- board(B), nth0(N,B,Val), var(Val), write('_ '), !.
+printVal(N) :- board(B), nth0(N,B,Val), write(Val), write(' ').
 
 displayBoard:-
-    interSpace,
-    write('|'), printVal(5), printVal(11), printVal(17),printVal(23),printVal(29),printVal(35),printVal(41), writeln(''),
-    interSpace,
-    write('|'), printVal(4), printVal(10), printVal(16),printVal(22),printVal(28),printVal(34),printVal(40), writeln(''),
-    interSpace,
-    write('|'), printVal(3), printVal(9), printVal(15),printVal(21),printVal(27),printVal(33),printVal(39), writeln(''),
-    interSpace,
-    write('|'), printVal(2), printVal(8), printVal(14),printVal(20),printVal(26),printVal(32),printVal(38), writeln(''),
-    interSpace,
-    write('|'), printVal(1), printVal(7), printVal(13),printVal(19),printVal(25),printVal(31),printVal(37), writeln(''),
-    interSpace,
-    write('|'), printVal(0), printVal(6), printVal(12),printVal(18),printVal(24),printVal(30),printVal(36), writeln(''),
-	interSpace.
+    printVal(5), printVal(11), printVal(17),printVal(23),printVal(29),printVal(35),printVal(41), writeln(''),
+    printVal(4), printVal(10), printVal(16),printVal(22),printVal(28),printVal(34),printVal(40), writeln(''),
+    printVal(3), printVal(9), printVal(15),printVal(21),printVal(27),printVal(33),printVal(39), writeln(''),
+    printVal(2), printVal(8), printVal(14),printVal(20),printVal(26),printVal(32),printVal(38), writeln(''),
+    printVal(1), printVal(7), printVal(13),printVal(19),printVal(25),printVal(31),printVal(37), writeln(''),
+    printVal(0), printVal(6), printVal(12),printVal(18),printVal(24),printVal(30),printVal(36), writeln('').
 
 heuristic(Board, Player, Score) :- winner(Board, Player), !, Score = 100.
-heuristic(_, _, Score) :- Score = 0.
+heuristic(_, _, Score) :- Score = 1.
 
 %%%%% Start the game! 
 init :- length(Board,42), assert(board(Board)), play('x').
