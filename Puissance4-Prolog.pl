@@ -1,4 +1,4 @@
-:- dynamic board/1.
+:- dynamic board/1. 
 
 play(_) :- gameover(Winner), !, displayBoard, writeln(''), write('Game is over. Winner is : '), writeln(Winner).
 
@@ -6,8 +6,8 @@ play(Player) :-
 board(Board),
 displayBoard,
 writeln(''),
-write(Player), writeln(', its your turn ! <3'), writeln(''), writeln(''),
-ia(Board, IndexCol, IndexRow, Player, NextPlayer,0),
+write(Player), writeln(', its your turn ! <3'), writeln(''), writeln(''), 
+ia(Board, IndexCol, IndexRow, Player,NextPlayer, 0),
 playMove(Board, IndexCol, IndexRow, NewBoard, Player),
 applyIt(Board, NewBoard),
 changePlayer(Player, NextPlayer),
@@ -22,7 +22,7 @@ elemBoard(IndCol, IndRow, Board, Elem) :- nth0(Index, Board, Elem), IndCol is di
 playMove(Board,Col,Row,NewBoard,Player) :- Board=NewBoard, elemBoard(Col,Row,NewBoard,Player).
 applyIt(Board,NewBoard) :- retract(board(Board)), assert(board(NewBoard)).
 
-%%%% Recursive predicate that checks if all the elements of the List (a board)
+%%%% Recursive predicate that checks if all the elements of the List (a board) 
 %%%% are instanciated: true e.g. for [x,x,o,o,x,o,x,x,o] false for [x,x,o,o,_G125,o,x,x,o]
 isBoardFull([]).
 isBoardFull([H|T]):- nonvar(H), isBoardFull(T).
@@ -65,9 +65,9 @@ winner(Board, P) :- elemBoard(Col1, Row1, Board, Z1),
     Col1 =< 3,
     Row1 =< 2,
                     Col2 is Col1+1,
-
+    
                     Row2 is Row1+1,
-
+    
                     elemBoard(Col2, Row2, Board, Z2),
     Z2 == P,
                     Col3 is Col2+1,
@@ -86,7 +86,7 @@ winner(Board, P) :- elemBoard(Col1, Row1, Board, Z1),
     				Row1 >= 3,
                     Col2 is Col1+1,
                     Row2 is Row1-1,
-
+    
                     elemBoard(Col2, Row2, Board, Z2),
     Z2 == P,
                     Col3 is Col2+1,
@@ -102,27 +102,19 @@ winner(Board, P) :- elemBoard(Col1, Row1, Board, Z1),
 changePlayer('x','o').
 changePlayer('o','x').
 
-
 %ia %%Rajouter score à remonter dans la récursion pour faire min max
-%ia(_,_,_,_,2):-
+%ia(_,_,_,_,2):- 
 %
-%%Soucis stop juste quand winner alors qu'on veut faire toutes les sommes
-
-%ia win immédiate
-ia(Board, IndexCol, IndexRow,Player,NextPlayer,0):-isMoveValid(IndexCol,IndexRow,Board), playMove(Board,IndexCol,IndexRow,NewBoardTest,Player), winner(NewBoardTest,Player),!.
+%%Soucis stop juste quand winner alros qu'on veut faire toutes les sommes
+ia(Board, IndexCol, IndexRow,Player,_,_):-isMoveValid(IndexCol,IndexRow,Board), copy_term(Board, NewBoardIA),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,Player), winner(NewBoardTest,Player),!.
 
 %ia victoire de l'adversaire immédiate :
-%ia(Board, IndexCol, IndexRow,Player,NextPlayer,0):-isMoveValid(IndexCol,IndexRow,Board), playMove(Board,IndexCol,IndexRow,NewBoardTest,NextPlayer), winner(NewBoardTest,NextPlayer),!.
-
-
-%ia Dora l'exploratrice
-%ia(Board, IndexCol, IndexRow,Player, profondeur)
-
+ia(Board, IndexCol, IndexRow,Player,NextPlayer,_):-isMoveValid(IndexCol,IndexRow,Board),copy_term(Board, NewBoardIA), changePlayer(Player,NextPlayer),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,NextPlayer),winner(NewBoardTest,NextPlayer),!.
 
 %Il faut check si colonne vide au dessus de Index et Elem en dessous d'Index
 %%IA random sa mère
-ia(Board, IndexCol, IndexRow,_,_):-repeat, IndexCol is random(7), IndexRow is random(6), isMoveValid(IndexCol,IndexRow,Board),!.
-
+ia(Board, IndexCol, IndexRow,_,_,_):-repeat, IndexCol is random(7), IndexRow is random(6), isMoveValid(IndexCol,IndexRow,Board),!.
+                                   
 
 isElemVar(Col,Row,Board):-elemBoard(Col, Row, Board, Elem),var(Elem).
 isColFullBelow(Col,Row,Board):-elemBoard(Col, Row-1, Board, ElemOver),nonvar(ElemOver).
@@ -130,23 +122,32 @@ isGroundCol(_,0,_).
 
 isMoveValid(Col,Row,Board):-isElemVar(Col,Row,Board),isColFullBelow(Col,Row,Board).
 isMoveValid(Col,Row,Board):-isElemVar(Col,Row,Board),isGroundCol(Col,Row,Board).
-
+                                       
 %rowInColValidMove([],0,Board).
 %rowInColValidMove([HCol|T],R,Board):-nonvar(HCol),rowInColValidMove(T,A,Board,Res), R is A+1.
 
-printVal(N) :- board(B), nth0(N,B,Val), var(Val), write('_ '), !.
-printVal(N) :- board(B), nth0(N,B,Val), write(Val), write(' ').
+printVal(N) :- board(B), nth0(N,B,Val), var(Val), write(' |'), !.
+printVal(N) :- board(B), nth0(N,B,Val), write(Val), write('|').
+
+interSpace.
 
 displayBoard:-
-    printVal(5), printVal(11), printVal(17),printVal(23),printVal(29),printVal(35),printVal(41), writeln(''),
-    printVal(4), printVal(10), printVal(16),printVal(22),printVal(28),printVal(34),printVal(40), writeln(''),
-    printVal(3), printVal(9), printVal(15),printVal(21),printVal(27),printVal(33),printVal(39), writeln(''),
-    printVal(2), printVal(8), printVal(14),printVal(20),printVal(26),printVal(32),printVal(38), writeln(''),
-    printVal(1), printVal(7), printVal(13),printVal(19),printVal(25),printVal(31),printVal(37), writeln(''),
-    printVal(0), printVal(6), printVal(12),printVal(18),printVal(24),printVal(30),printVal(36), writeln('').
+    interSpace,
+    write('|'), printVal(5), printVal(11), printVal(17),printVal(23),printVal(29),printVal(35),printVal(41), writeln(''),
+    interSpace,
+    write('|'), printVal(4), printVal(10), printVal(16),printVal(22),printVal(28),printVal(34),printVal(40), writeln(''),
+    interSpace,
+    write('|'), printVal(3), printVal(9), printVal(15),printVal(21),printVal(27),printVal(33),printVal(39), writeln(''),
+    interSpace,
+    write('|'), printVal(2), printVal(8), printVal(14),printVal(20),printVal(26),printVal(32),printVal(38), writeln(''),
+    interSpace,
+    write('|'), printVal(1), printVal(7), printVal(13),printVal(19),printVal(25),printVal(31),printVal(37), writeln(''),
+    interSpace,
+    write('|'), printVal(0), printVal(6), printVal(12),printVal(18),printVal(24),printVal(30),printVal(36), writeln(''),
+	interSpace.
 
 heuristic(Board, Player, Score) :- winner(Board, Player), !, Score = 100.
 heuristic(_, _, Score) :- Score = 0.
 
-%%%%% Start the game!
+%%%%% Start the game! 
 init :- length(Board,42), assert(board(Board)), play('x').
