@@ -7,7 +7,8 @@ board(Board),
 displayBoard,
 writeln(''),
 write(Player), writeln(', its your turn ! <3'), writeln(''), writeln(''), 
-ia(Board, IndexCol, IndexRow, Player,NextPlayer, 0),
+ia(Board, Player, 2, IndexCol),
+isMoveValid(IndexCol, IndexRow, Board),
 playMove(Board, IndexCol, IndexRow, NewBoard, Player),
 applyIt(Board, NewBoard),
 changePlayer(Player, NextPlayer),
@@ -102,11 +103,6 @@ winner(Board, P) :- elemBoard(Col1, Row1, Board, Z1),
 changePlayer('x','o').
 changePlayer('o','x').
 
-%ia %%Rajouter score à remonter dans la récursion pour faire min max
-%ia(_,_,_,_,2):- 
-%
-%%Soucis stop juste quand winner alros qu'on veut faire toutes les sommes
-
 %Victoire immédiate
 %ia(Board, IndexCol, IndexRow,'x',_,_):-isMoveValid(IndexCol,IndexRow,Board), copy_term(Board, NewBoardIA),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,Player), winner(NewBoardTest,Player),!.
 
@@ -114,63 +110,70 @@ changePlayer('o','x').
 %ia(Board, IndexCol, IndexRow,'x',NextPlayer,_):-isMoveValid(IndexCol,IndexRow,Board),copy_term(Board, NewBoardIA), changePlayer(Player,NextPlayer),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,NextPlayer),winner(NewBoardTest,NextPlayer),!.
 
 %IA Heuristique
-ia(Board, IndexCol, IndexRow,'o',_,1, Score):-isMoveValid(IndexCol,IndexRow,Board),
-    														copy_term(Board, NewBoardIA),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,'o'),
-    														heuristic(NewBoardTest, 'o', OtherScore),
-															Score is -OtherScore.
-ia(Board, IndexCol, IndexRow,'o',_,_):-repeat, IndexCol is random(7), IndexRow is random(6), isMoveValid(IndexCol,IndexRow,Board),!.
 
-ia(Board, IndexCol, IndexRow,'x',_,0):-	
-%    														scoreMax(-1000),
+heuristique_signe(Board, JoueurActuel, Profondeur, ReturnScore) :-
+    Res is Profondeur mod 2,
+    Res == 1,
+    heuristique(Board, JoueurActuel, ReturnScore).
+
+heuristique_signe(Board, JoueurActuel, Profondeur, ReturnScore) :-
+    Res is Profondeur mod 2,
+    Res == 0,
+    changePlayer(JoueurActuel, NextJoueur),
+    heuristique(Board, NextJoueur, ScoreNegatif),
+    ReturnScore is -ScoreNegatif.
+                         
+ia_interne(Board, JoueurActuel, Profondeur, ProfondeurMax, ReturnScore) :-
+    Profondeur >= ProfondeurMax,
+    heuristique_signe(Board, JoueurActuel, Profondeur, ReturnScore).
+
+ia_interne(Board, JoueurActuel, Profondeur, _, ReturnScore) :-
+    winner(Board, _),
+    heuristique_signe(Board, JoueurActuel, Profondeur, ReturnScore).
+
+ia_interne(Board, JoueurActuel, Profondeur, ProfondeurMax, ReturnScore) :-
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 0, Score0),
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 1, Score1),
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 2, Score2),
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 3, Score3),
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 4, Score4),
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 5, Score5),
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 6, Score6),
+
     
- %   														repeat,
-  %  															isMoveValid(IndexColCurrent,IndexRowCurrent,Board), 
-   % 															copy_term(Board, NewBoardIA),
-    %															playMove(NewBoardIA,IndexColCurrent, IndexRowCurrent,NewBoardTest,'x'),
-    %															changePlayer('x', NextPlayer),
-   	%															ia(NewBoardTest, _, _,NextPlayer,'x',1,Score),
-    %															Score > scoreMax,
-    %															scoreMax(Score),
-    %															IndexCol = IndexColCurrent,
-     %         												IndexRow = IndexRowCurrent.
-              											
+    ListeScore = [Score0, Score1, Score2, Score3, Score4, Score5, Score6],
+    min_list(ListeScore, ReturnScore).    
     
-	bestMove(Board,IndexCol,IndexRow,_,-1000,[]).
-              												
-getRandomValidMove(Board, IndexCol, IndexRow) :- repeat, IndexCol is random(7), IndexRow is random(6), isMoveValid(IndexCol,IndexRow,Board),!.
+jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, Col, ReturnScore) :-
+    isMoveValid(Col, Row, Board), 
+    copy_term(Board, NewBoard),
+    playMove(NewBoard, Col, Row, BoardAfterMove, JoueurActuel),
+    NewProfondeur is Profondeur + 1,
+    changePlayer(JoueurActuel, NextJoueur),
+   	ia_interne(BoardAfterMove, NextJoueur, NewProfondeur, ProfondeurMax, ReturnScore).
 
+jouerCoupIA(_, _, 0, _, _, ReturnScore) :-
+    ReturnScore = (-1000).
 
-%Best Move
-bestMove(Board, BestCol, BestRow, NewScoreMax, OldScoreMax, CoupsEffectues) :-
-  getRandomValidMove(Board, Col, Row),
-  not(member(Col, CoupsEffectues)),
-
-    append(CoupsEffectues, [Col], NewCoupsEffectues),
-
-  bestMove(Board, BestCol, BestRow, InterScoreMax, OldScoreMax, NewCoupsEffectues),
-
-  copy_term(Board, NewBoard),
-  playMove(NewBoard, Col, Row, NewBoardAfterMove, 'x'),
-  %changePlayer('x', NextPlayer),
-  heuristic(NewBoardAfterMove, 'x', Score),
-
-  NewScoreMax is max(Score, InterScoreMax),
-  Score > InterScoreMax,
-  BestCol = Col,
-  BestRow = Row.
-
-bestMove(_, _, _, NewScoreMax, _, _) :-
-  NewScoreMax = (-1000).
-
-
-
-%Niv intermédiaire
-%ia(Board, IndexCol, IndexRow,'x',NextPlayer,Profondeur,Score):-isMoveValid(IndexCol,IndexRow,Board),NewProfondeur is Profondeur+1, 
- %   														copy_term(Board, NewBoardIA),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,Player),
-  %  														ia(NewBoardTest, IndexCol, IndexRow,Player,NextPlayer,NewProfondeur,Score).
-    
+jouerCoupIA(_, _, _, _, _, ReturnScore) :-
+    ReturnScore = 1000.
 
 %%IA random
+ia(Board, 'o', _, ReturnCol):-repeat, ReturnCol is random(7), isMoveValid(ReturnCol, _, Board),!.
+
+ia(Board, JoueurActuel, ProfondeurMax, ReturnCol) :-
+    jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 0, Score0),
+    jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 1, Score1),
+    jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 2, Score2),
+    jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 3, Score3),
+    jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 4, Score4),
+    jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 5, Score5),
+    jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 6, Score6),
+    
+    ListeScore = [Score0, Score1, Score2, Score3, Score4, Score5, Score6],
+    max_list(ListeScore, ReturnScore),
+    nth0(ReturnCol, ListeScore, ReturnScore).
+
                                    
 
 isElemVar(Col,Row,Board):-elemBoard(Col, Row, Board, Elem),var(Elem).
@@ -194,8 +197,9 @@ displayBoard:-
     printVal(1), printVal(7), printVal(13),printVal(19),printVal(25),printVal(31),printVal(37), writeln(''),
     printVal(0), printVal(6), printVal(12),printVal(18),printVal(24),printVal(30),printVal(36), writeln('').
 
-heuristic(Board, Player, Score) :- winner(Board, Player), !, Score = 100.
-heuristic(_, _, Score) :- Score = 1.
+heuristique(Board, Player, Score) :- winner(Board, Player), !,
+    Score = 100.
+heuristique(_, _, Score) :- Score = 1.
 
 %%%%% Start the game! 
 init :- length(Board,42), assert(board(Board)), play('x').
