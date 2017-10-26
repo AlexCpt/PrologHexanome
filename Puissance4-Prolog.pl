@@ -7,7 +7,7 @@ board(Board),
 displayBoard,
 writeln(''),
 write(Player), writeln(', its your turn ! <3'), writeln(''), writeln(''), 
-ia(Board, Player, 2, IndexCol),
+ia(Board, Player, 5, IndexCol),
 isMoveValid(IndexCol, IndexRow, Board),
 playMove(Board, IndexCol, IndexRow, NewBoard, Player),
 applyIt(Board, NewBoard),
@@ -99,6 +99,7 @@ winner(Board, P) :- elemBoard(Col1, Row1, Board, Z1),
                     elemBoard(Col4, Row4, Board, Z4),
     Z4 == P, !. % diag2
 
+
 %%%% Predicate to get the next player
 changePlayer('x','o').
 changePlayer('o','x').
@@ -113,15 +114,26 @@ changePlayer('o','x').
 
 heuristique_signe(Board, JoueurActuel, Profondeur, ReturnScore) :-
     Res is Profondeur mod 2,
-    Res == 1,
-    heuristique(Board, JoueurActuel, ReturnScore).
-
-heuristique_signe(Board, JoueurActuel, Profondeur, ReturnScore) :-
-    Res is Profondeur mod 2,
     Res == 0,
+    heuristique(Board, JoueurActuel, Score),
     changePlayer(JoueurActuel, NextJoueur),
-    heuristique(Board, NextJoueur, ScoreNegatif),
-    ReturnScore is -ScoreNegatif.
+    heuristique(Board, NextJoueur, ScoreAdv),
+    ReturnScore is (Score - ScoreAdv).
+
+heuristique_signe(Board, Adversaire, Profondeur, ReturnScore) :-
+    Res is Profondeur mod 2,
+    Res == 1,
+    heuristique(Board, Adversaire, ScoreAdv),
+    changePlayer(Adversaire, NextJoueur),
+    heuristique(Board, NextJoueur, Score),
+    ReturnScore is (Score - ScoreAdv).
+
+%heuristique_signe(Board, JoueurActuel, Profondeur, ReturnScore) :-
+%    Res is Profondeur mod 2,
+%    Res == 0,
+%    changePlayer(JoueurActuel, NextJoueur),
+%    heuristique(Board, NextJoueur, ScoreNegatif),
+%    ReturnScore is ((1/Profondeur) *(-ScoreNegatif)).
                          
 ia_interne(Board, JoueurActuel, Profondeur, ProfondeurMax, ReturnScore) :-
     Profondeur >= ProfondeurMax,
@@ -132,6 +144,23 @@ ia_interne(Board, JoueurActuel, Profondeur, _, ReturnScore) :-
     heuristique_signe(Board, JoueurActuel, Profondeur, ReturnScore).
 
 ia_interne(Board, JoueurActuel, Profondeur, ProfondeurMax, ReturnScore) :-
+    Res is Profondeur mod 2,
+    Res == 0,
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 0, Score0),
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 1, Score1),
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 2, Score2),
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 3, Score3),
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 4, Score4),
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 5, Score5),
+    jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 6, Score6),
+
+    
+    ListeScore = [Score0, Score1, Score2, Score3, Score4, Score5, Score6],
+    max_list(ListeScore, ReturnScore).    
+
+ia_interne(Board, JoueurActuel, Profondeur, ProfondeurMax, ReturnScore) :-
+    Res is Profondeur mod 2,
+    Res == 1,
     jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 0, Score0),
     jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 1, Score1),
     jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, 2, Score2),
@@ -152,13 +181,26 @@ jouerCoupIA(Board, JoueurActuel, Profondeur, ProfondeurMax, Col, ReturnScore) :-
     changePlayer(JoueurActuel, NextJoueur),
    	ia_interne(BoardAfterMove, NextJoueur, NewProfondeur, ProfondeurMax, ReturnScore).
 
-jouerCoupIA(_, _, 0, _, _, ReturnScore) :-
+jouerCoupIA(_, _, Profondeur, _, _, ReturnScore) :-
+    Res is Profondeur mod 2,
+    Res == 0,
     ReturnScore = (-1000).
 
-jouerCoupIA(_, _, _, _, _, ReturnScore) :-
+jouerCoupIA(_, _, Profondeur, _, _, ReturnScore) :-
+    Res is Profondeur mod 2,
+    Res == 1,
     ReturnScore = 1000.
 
-%%IA random
+% "o"
+%Victoire immédiate
+ia(Board,'o',_,ReturnCol):-isMoveValid(ReturnCol,IndexRow,Board), copy_term(Board, NewBoardIA),playMove(NewBoardIA,ReturnCol,IndexRow,NewBoardTest,'o'), winner(NewBoardTest,'o'),!.
+
+% "o"
+%ia qui contre la victoire de l'adversaire immédiate : 
+ia(Board,'o',_,ReturnCol):-isMoveValid(ReturnCol,IndexRow,Board),copy_term(Board, NewBoardIA), changePlayer('o',NextPlayer), playMove(NewBoardIA,ReturnCol,IndexRow,NewBoardTest,NextPlayer), winner(NewBoardTest,NextPlayer),!.
+
+% "o"
+%%IA random pour "o"
 ia(Board, 'o', _, ReturnCol):-repeat, ReturnCol is random(7), isMoveValid(ReturnCol, _, Board),!.
 
 ia(Board, JoueurActuel, ProfondeurMax, ReturnCol) :-
@@ -198,8 +240,169 @@ displayBoard:-
     printVal(0), printVal(6), printVal(12),printVal(18),printVal(24),printVal(30),printVal(36), writeln('').
 
 heuristique(Board, Player, Score) :- winner(Board, Player), !,
-    Score = 100.
+    Score = 200.
+
+heuristique(Board,Player,Score):-
+    troisPionsAligneCol1(Board,Player, Score1),
+    troisPionsAligneCol2(Board,Player, Score2),
+    troisPionsAligneRow1(Board,Player, Score3),
+    troisPionsAligneRow2(Board,Player, Score4),
+    troisPionsAligneDiag11(Board,Player, Score5),
+    troisPionsAligneDiag12(Board,Player, Score6),
+    troisPionsAligneDiag21(Board,Player, Score7),
+    troisPionsAligneDiag22(Board,Player, Score8),
+    Score is min(Score1 + Score2 + Score3 + Score4 + Score5 + Score6 + Score7 + Score8, 20).
 heuristique(_, _, Score) :- Score = 1.
 
-%%%%% Start the game! 
+
+troisPionsAligneCol1(Board, P, Score) :- elemBoard(Col1, Row, Board, Z1),
+                    nonvar(Z1),
+    				P = Z1,
+    				Col1 =< 3,
+                    Col2 is Col1+1,
+                    elemBoard(Col2, Row, Board, Z2),
+    Z2 == P,
+                    Col3 is Col2+1,
+                    elemBoard(Col3, Row, Board, Z3),
+    Z3 == P,
+                    Col4 is Col3+1,
+                    isMoveValid(Col4, Row, Board),
+    				!, Score = 10. % row
+
+troisPionsAligneCol1(_, _, Score) :- Score = 0.
+
+troisPionsAligneCol2(Board, P, Score) :- elemBoard(Col1, Row, Board, Z1),
+                    nonvar(Z1),
+    				P = Z1,
+    				Col1 =< 4,
+    				Col1 >= 1,
+                    Col2 is Col1+1,
+                    elemBoard(Col2, Row, Board, Z2),
+    Z2 == P,
+                    Col3 is Col2+1,
+                    elemBoard(Col3, Row, Board, Z3),
+    Z3 == P,
+                    Col4 is Col1-1,
+                    isMoveValid(Col4, Row, Board),
+    				!, Score = 10. % row
+
+troisPionsAligneCol2(_, _, Score) :- Score = 0.
+
+troisPionsAligneRow1(Board, P, Score) :- elemBoard(Col, Row1, Board, Z1),
+                    nonvar(Z1),
+    				P = Z1,
+    				Row1 =< 2,
+                    Row2 is Row1+1,
+                    elemBoard(Col, Row2, Board, Z2),
+    Z2 == P,
+                    Row3 is Row2+1,
+                    elemBoard(Col, Row3, Board, Z3),
+    Z3 == P,
+                    Row4 is Row3+1,
+                    isMoveValid(Col, Row4, Board),
+    				!, Score = 10. % row
+
+troisPionsAligneRow1(_, _, Score) :- Score = 0.
+
+troisPionsAligneRow2(Board, P, Score) :- elemBoard(Col, Row1, Board, Z1),
+                    nonvar(Z1),
+    				P = Z1,
+    				Row1 =< 3,
+                    Row2 is Row1+1,
+                    elemBoard(Col, Row2, Board, Z2),
+    Z2 == P,
+                    Row3 is Row2+1,
+                    elemBoard(Col, Row3, Board, Z3),
+    Z3 == P,
+                    Row4 is Row3-1,
+                    isMoveValid(Col, Row4, Board),
+    				!, Score = 10. % row
+
+troisPionsAligneRow2(_, _, Score) :- Score = 0.
+
+troisPionsAligneDiag11(Board, P, Score) :- elemBoard(Col1, Row1, Board, Z1),
+                    nonvar(Z1),
+    				P = Z1,
+    				Row1 =< 2,
+    				Col1 =< 3,
+                    Row2 is Row1+1,
+    				Col2 is Col1+1,
+                    elemBoard(Col2, Row2, Board, Z2),
+    Z2 == P,
+                    Row3 is Row2+1,
+    				Col3 is Col2+1,
+                    elemBoard(Col3, Row3, Board, Z3),
+    Z3 == P,
+                    Row4 is Row3+1,
+    				Col4 is Col3+1,
+                    isMoveValid(Col4, Row4, Board),
+    				!, Score = 10. % row
+
+troisPionsAligneDiag11(_, _, Score) :- Score = 0.
+
+troisPionsAligneDiag12(Board, P, Score) :- elemBoard(Col1, Row1, Board, Z1),
+                    nonvar(Z1),
+    				P = Z1,
+    				Row1 =< 3,
+    				Col1 =< 4,
+                    Row2 is Row1+1,
+    				Col2 is Col1+1,
+                    elemBoard(Col2, Row2, Board, Z2),
+    Z2 == P,
+                    Row3 is Row2+1,
+    				Col3 is Col2+1,
+                    elemBoard(Col3, Row3, Board, Z3),
+    Z3 == P,
+                    Row4 is Row3-1,
+    				Col4 is Col3-1,
+                    isMoveValid(Col4, Row4, Board),
+    				!, Score = 10. % row
+
+troisPionsAligneDiag12(_, _, Score) :- Score = 0.
+
+troisPionsAligneDiag21(Board, P, Score) :- elemBoard(Col1, Row1, Board, Z1),
+                    nonvar(Z1),
+    				P = Z1,
+    				Row1 =< 2,
+    				Col1 >= 3,
+                    Row2 is Row1+1,
+    				Col2 is Col1-1,
+                    elemBoard(Col2, Row2, Board, Z2),
+    Z2 == P,
+                    Row3 is Row2+1,
+    				Col3 is Col2-1,
+                    elemBoard(Col3, Row3, Board, Z3),
+    Z3 == P,
+                    Row4 is Row3+1,
+    				Col4 is Col3-1,
+                    isMoveValid(Col4, Row4, Board),
+    				!, Score = 10. % row
+
+troisPionsAligneDiag21(_, _, Score) :- Score = 0.
+
+troisPionsAligneDiag22(Board, P, Score) :- elemBoard(Col1, Row1, Board, Z1),
+                    nonvar(Z1),
+    				P = Z1,
+    				Row1 =< 3,
+    				Row1 >= 1,
+    				Col1 >= 2,
+    				Col1 =< 5,
+                    Row2 is Row1+1,
+    				Col2 is Col1-1,
+                    elemBoard(Col2, Row2, Board, Z2),
+    Z2 == P,
+                    Row3 is Row2+1,
+    				Col3 is Col2-1,
+                    elemBoard(Col3, Row3, Board, Z3),
+    Z3 == P,
+                    Row4 is Row3-1,
+    				Col4 is Col3+1,
+                    isMoveValid(Col4, Row4, Board),
+    				!, Score = 10. % row
+
+troisPionsAligneDiag22(_, _, Score) :- Score = 0.
+
+
+
+%%%%% Start the game ! 
 init :- length(Board,42), assert(board(Board)), play('x').
