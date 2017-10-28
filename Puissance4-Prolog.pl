@@ -1,18 +1,18 @@
 :- dynamic board/1. 
 
-play(_) :- gameover(Winner), !, displayBoard, writeln(''), write('Game is over. Winner is : '), writeln(Winner).
+play(_,VictoryPlayer,_) :- gameover(Winner), !, displayBoard, writeln(''), write('Game is over. Winner is : '), writeln(Winner), VictoryPlayer = Winner.
 
-play(Player) :-
+play(Player,VictoryPlayer,Mode) :-
 board(Board),
 displayBoard,
 writeln(''),
 write(Player), writeln(', its your turn ! <3'), writeln(''), writeln(''), 
-ia(Board, Player, 5, IndexCol),
+ia(Board, Player, 4, IndexCol, Mode),
 isMoveValid(IndexCol, IndexRow, Board),
 playMove(Board, IndexCol, IndexRow, NewBoard, Player),
 applyIt(Board, NewBoard),
 changePlayer(Player, NextPlayer),
-play(NextPlayer).
+play(NextPlayer, VictoryPlayer, Mode).
 
 
 % Retourne l'élément à la position [IndCol, IndRow]
@@ -111,7 +111,6 @@ changePlayer('o','x').
 %ia(Board, IndexCol, IndexRow,'x',NextPlayer,_):-isMoveValid(IndexCol,IndexRow,Board),copy_term(Board, NewBoardIA), changePlayer(Player,NextPlayer),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,NextPlayer),winner(NewBoardTest,NextPlayer),!.
 
 %IA Heuristique
-
 heuristique_signe(Board, JoueurActuel, Profondeur, ReturnScore) :-
     Res is Profondeur mod 2,
     Res == 0,
@@ -191,19 +190,39 @@ jouerCoupIA(_, _, Profondeur, _, _, ReturnScore) :-
     Res == 1,
     ReturnScore = 1000.
 
-% "o"
-%Victoire immédiate
-ia(Board,'o',_,ReturnCol):-isMoveValid(ReturnCol,IndexRow,Board), copy_term(Board, NewBoardIA),playMove(NewBoardIA,ReturnCol,IndexRow,NewBoardTest,'o'), winner(NewBoardTest,'o'),!.
+%-------------------------------
+%IA TOUT RANDOM -> MODE 1
+ia(Board, _, _, ReturnCol,1):-repeat, ReturnCol is random(7), isMoveValid(ReturnCol, _, Board),!.
+%--------------------------------
 
-% "o"
-%ia qui contre la victoire de l'adversaire immédiate : 
-ia(Board,'o',_,ReturnCol):-isMoveValid(ReturnCol,IndexRow,Board),copy_term(Board, NewBoardIA), changePlayer('o',NextPlayer), playMove(NewBoardIA,ReturnCol,IndexRow,NewBoardTest,NextPlayer), winner(NewBoardTest,NextPlayer),!.
 
-% "o"
-%%IA random pour "o"
-ia(Board, 'o', _, ReturnCol):-repeat, ReturnCol is random(7), isMoveValid(ReturnCol, _, Board),!.
+%--------------------------------
+% IA Victoire Immédiate / Contre et 'o' random-> MODE 2
+% 
+% Victoire immédiate
+ia(Board,'x',_,ReturnCol,2):-isMoveValid(ReturnCol,IndexRow,Board), copy_term(Board, NewBoardIA),playMove(NewBoardIA,ReturnCol,IndexRow,NewBoardTest,'o'), winner(NewBoardTest,'o'),!.
 
-ia(Board, JoueurActuel, ProfondeurMax, ReturnCol) :-
+%Contrer la victoire de l'adversaire
+ia(Board,'x',_,ReturnCol,2):-isMoveValid(ReturnCol,IndexRow,Board),copy_term(Board, NewBoardIA), changePlayer('o',NextPlayer), playMove(NewBoardIA,ReturnCol,IndexRow,NewBoardTest,NextPlayer), winner(NewBoardTest,NextPlayer),!.
+
+%O en Random
+ia(Board, _, _, ReturnCol,2):-repeat, ReturnCol is random(7), isMoveValid(ReturnCol, _, Board),!.
+%%--------------------------------
+
+%%--------------------------------
+%IA Heuristique arbre MinMax
+%
+% Victoire immédiate -> O
+ia(Board,'o',_,ReturnCol,3):-isMoveValid(ReturnCol,IndexRow,Board), copy_term(Board, NewBoardIA),playMove(NewBoardIA,ReturnCol,IndexRow,NewBoardTest,'o'), winner(NewBoardTest,'o'),!.
+
+%Contrer la victoire de l'adversaire -> O
+ia(Board,'o',_,ReturnCol,3):-isMoveValid(ReturnCol,IndexRow,Board),copy_term(Board, NewBoardIA), changePlayer('o',NextPlayer), playMove(NewBoardIA,ReturnCol,IndexRow,NewBoardTest,NextPlayer), winner(NewBoardTest,NextPlayer),!.
+
+% Random -> O
+ia(Board, 'o', _, ReturnCol,3):-repeat, ReturnCol is random(7), isMoveValid(ReturnCol, _, Board),!.
+
+%X en heuristique
+ia(Board, 'x', ProfondeurMax, ReturnCol,3) :-
     jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 0, Score0),
     jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 1, Score1),
     jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 2, Score2),
@@ -215,7 +234,7 @@ ia(Board, JoueurActuel, ProfondeurMax, ReturnCol) :-
     ListeScore = [Score0, Score1, Score2, Score3, Score4, Score5, Score6],
     max_list(ListeScore, ReturnScore),
     nth0(ReturnCol, ListeScore, ReturnScore).
-
+%%%--------------------------------
                                    
 
 isElemVar(Col,Row,Board):-elemBoard(Col, Row, Board, Elem),var(Elem).
@@ -402,7 +421,27 @@ troisPionsAligneDiag22(Board, P, Score) :- elemBoard(Col1, Row1, Board, Z1),
 
 troisPionsAligneDiag22(_, _, Score) :- Score = 0.
 
+xisWinner('x',VictoireX, NewVictoire):-
+	NewVictoire is VictoireX + 1.
+xisWinner('o',VictoireX, NewVictoire):-
+	NewVictoire is VictoireX.
+
+
+%Mode 1 -> TOUT RANDOM
+%Mode 2 -> X repère les alignements de 3 pour gagner ou contrer mais sinon random / O random
+%Mode 3 -> X MinMax et O repère les alignements de 3 pour gagner ou contrer mais sinon random
+
+statistic(NbActu,NbTot,VictoireX,Mode):-
+    NbActu<NbTot,
+    NouvNbActu is NbActu + 1,
+    init(X,Mode),
+    xisWinner(X,VictoireX,NewVictoire),
+    write(NewVictoire),
+    write('sur'),
+    write(NouvNbActu),
+
+    statistic(NouvNbActu,NbTot,NewVictoire,Mode).
 
 
 %%%%% Start the game ! 
-init :- length(Board,42), assert(board(Board)), play('x').
+init(VictoryPlayer, Mode):- length(Board,42), assert(board(Board)), play('x', VictoryPlayer,Mode), retract(board(Board)).
