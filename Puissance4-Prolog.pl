@@ -7,7 +7,7 @@ board(Board),
 displayBoard,
 writeln(''),
 write(Player), writeln(', its your turn ! <3'), writeln(''), writeln(''), 
-ia(Board, Player, 4, IndexCol, Mode),
+ia(Board, Player, 2, IndexCol, Mode),
 isMoveValid(IndexCol, IndexRow, Board),
 playMove(Board, IndexCol, IndexRow, NewBoard, Player),
 applyIt(Board, NewBoard),
@@ -405,10 +405,15 @@ troisPionsAligneDiag22(Board, P, Score) :- elemBoard(Col1, Row1, Board, Z1),
 
 troisPionsAligneDiag22(_, _, Score) :- Score = 0.
 
-xisWinner('x',VictoireX, NewVictoire):-
+whoIsWinner('x',VictoireX, NewVictoire):-
 	NewVictoire is VictoireX + 1.
-xisWinner('o',VictoireX, NewVictoire):-
+whoIsWinner('o',VictoireX, NewVictoire):-
 	NewVictoire is VictoireX.
+
+%In case of draw
+whoIsWinner('Draw',VictoireX, NewVictoire):-
+	NewVictoire is VictoireX.
+
 
 
 %Mode 1 -> TOUT RANDOM
@@ -421,9 +426,9 @@ statistic(NbActu,NbTot,VictoireX,Mode):-
     NbActu<NbTot,
     NouvNbActu is NbActu + 1,
     init(X,Mode),
-    xisWinner(X,VictoireX,NewVictoire),
+    whoIsWinner(X,VictoireX,NewVictoire),
     write(NewVictoire),
-    write('sur'),
+    write(' sur '),
     write(NouvNbActu),
 
     statistic(NouvNbActu,NbTot,NewVictoire, Mode).
