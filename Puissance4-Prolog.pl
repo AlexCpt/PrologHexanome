@@ -104,12 +104,6 @@ winner(Board, P) :- elemBoard(Col1, Row1, Board, Z1),
 changePlayer('x','o').
 changePlayer('o','x').
 
-%Victoire immédiate
-%ia(Board, IndexCol, IndexRow,'x',_,_):-isMoveValid(IndexCol,IndexRow,Board), copy_term(Board, NewBoardIA),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,Player), winner(NewBoardTest,Player),!.
-
-%ia victoire de l'adversaire immédiate :
-%ia(Board, IndexCol, IndexRow,'x',NextPlayer,_):-isMoveValid(IndexCol,IndexRow,Board),copy_term(Board, NewBoardIA), changePlayer(Player,NextPlayer),playMove(NewBoardIA,IndexCol,IndexRow,NewBoardTest,NextPlayer),winner(NewBoardTest,NextPlayer),!.
-
 %IA Heuristique
 heuristique_signe(Board, JoueurActuel, Profondeur, ReturnScore) :-
     Res is Profondeur mod 2,
@@ -126,13 +120,6 @@ heuristique_signe(Board, Adversaire, Profondeur, ReturnScore) :-
     changePlayer(Adversaire, NextJoueur),
     heuristique(Board, NextJoueur, Score),
     ReturnScore is (Score - ScoreAdv).
-
-%heuristique_signe(Board, JoueurActuel, Profondeur, ReturnScore) :-
-%    Res is Profondeur mod 2,
-%    Res == 0,
-%    changePlayer(JoueurActuel, NextJoueur),
-%    heuristique(Board, NextJoueur, ScoreNegatif),
-%    ReturnScore is ((1/Profondeur) *(-ScoreNegatif)).
                          
 ia_interne(Board, JoueurActuel, Profondeur, ProfondeurMax, ReturnScore) :-
     Profondeur >= ProfondeurMax,
@@ -226,7 +213,7 @@ ia(Board, 'x', ProfondeurMax, ReturnCol,3) :-
     jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 0, Score0),
     jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 1, Score1),
     jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 2, Score2),
-    jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 3, Score3),
+   jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 3, Score3),
     jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 4, Score4),
     jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 5, Score5),
     jouerCoupIA(Board, JoueurActuel, 0, ProfondeurMax, 6, Score6),
@@ -244,9 +231,6 @@ isGroundCol(_,0,_).
 isMoveValid(Col,Row,Board):-isElemVar(Col,Row,Board),isColFullBelow(Col,Row,Board).
 isMoveValid(Col,Row,Board):-isElemVar(Col,Row,Board),isGroundCol(Col,Row,Board).
                                        
-%rowInColValidMove([],0,Board).
-%rowInColValidMove([HCol|T],R,Board):-nonvar(HCol),rowInColValidMove(T,A,Board,Res), R is A+1.
-
 printVal(N) :- board(B), nth0(N,B,Val), var(Val), write('_ '), !.
 printVal(N) :- board(B), nth0(N,B,Val), write(Val), write(' ').
 
@@ -431,6 +415,8 @@ xisWinner('o',VictoireX, NewVictoire):-
 %Mode 2 -> X repère les alignements de 3 pour gagner ou contrer mais sinon random / O random
 %Mode 3 -> X MinMax et O repère les alignements de 3 pour gagner ou contrer mais sinon random
 
+%Fait NbTot parties en mode Mode et affiche le nombre de victoires de 'x'
+%Appel : statistic(0,NbTot,0,Mode).
 statistic(NbActu,NbTot,VictoireX,Mode):-
     NbActu<NbTot,
     NouvNbActu is NbActu + 1,
@@ -440,7 +426,7 @@ statistic(NbActu,NbTot,VictoireX,Mode):-
     write('sur'),
     write(NouvNbActu),
 
-    statistic(NouvNbActu,NbTot,NewVictoire,Mode).
+    statistic(NouvNbActu,NbTot,NewVictoire, Mode).
 
 
 %%%%% Start the game ! 
